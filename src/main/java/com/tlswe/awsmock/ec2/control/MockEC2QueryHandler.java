@@ -897,6 +897,22 @@ public final class MockEC2QueryHandler {
                             } else if ("DescribeTags".equals(action)) {
                                 responseXml = JAXBUtil.marshall(describeTags(),
                                         "DescribeTagsResponse", version);
+                            } else if ("DescribeRegions".equals(action)) {
+                            	// TODO with new Model
+                            	
+                            } else if ("DescribeNetworkInterfaces".equals(action)) {
+                            	// TODO with new Model
+                            	// Currently not sure if it belongs to "needs instanceIDS" category
+                            } else if (" DescribeVpnConnections".equals(action)) {
+                            	// TODO with new Model
+                            } else if ("DescribeVpnGateways".equals(action)) {
+                            	// TODO probably can combine model with vpn connections
+                            } else if ("DescribeVpcPeeringConnections".equals(action)) {
+                            	// TODO add to VPC model
+                            } else if ("DescribeCustomerGateways".equals(action)) {
+                            	// TODO probably need with new model
+                            } else if ("DescribeVpnGateways".equals(action)) {
+                            	// TODO find whether add to gate or vpn model.
                             } else {
                                 // unsupported/unimplemented action - write an
                                 // error
