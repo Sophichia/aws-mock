@@ -1,0 +1,12 @@
+// author: mengjial
+
+This package is created by the following reason.
+Previously, this aws-mock project originally created this kind of client codes by using WSDL2Java tool,
+which can automatically generate EC2 WSDL file to java code.
+But AWS EC2 WSDL haven't been updated after 2014/02/01, so new APIs added to this project has two options to
+do these things. 
+	1. Adding API descriptions directly into previous WSDL file.
+	2. Manually Create JAVA code for new APIs.
+I choose the second way, since I am not familiar with WSDL, also our team needs to quickly finish new tasks.
+
+Everything under this package are similar to the those inside cxf_generated package.
