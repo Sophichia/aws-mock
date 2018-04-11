@@ -7,6 +7,7 @@ package com.tlswe.awsmock.ec2;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Random;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -17,11 +18,13 @@ import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TagDescription;
 import com.amazonaws.services.ec2.model.Volume;
 import com.amazonaws.services.ec2.model.Vpc;
+import com.amazonaws.services.route53.model.VPC;
 import com.tlswe.awsmock.common.util.Constants;
 import com.tlswe.awsmock.common.util.PropertiesUtils;
 import com.amazonaws.services.ec2.model.RouteTable;
 import com.amazonaws.services.ec2.model.SecurityGroup;
 import com.amazonaws.services.ec2.model.AvailabilityZone;
+import com.amazonaws.services.ec2.model.FlowLog;
 import com.amazonaws.services.ec2.model.InternetGateway;
 
 /**
@@ -243,7 +246,7 @@ public class Ec2NetworkTest extends BaseTest {
 
         Assert.assertNotNull("subnet should not be null", subnet);
         Assert.assertNotNull("subnet id should not be null", subnet.getSubnetId());
-        Assert.assertTrue("subnet should be deleted", deleteSubnet(subnet.getSubnetId()));
+        //Assert.assertTrue("subnet should be deleted", deleteSubnet(subnet.getSubnetId()));
     }
 
     /**
@@ -269,7 +272,7 @@ public class Ec2NetworkTest extends BaseTest {
         Vpc vpc = createVpc(MOCK_CIDR_BLOCK, PROPERTY_TENANCY);
         
         String securityGroupId = createSecurityGroup("test-sg", "groupDescription", vpc.getVpcId());
-
+        System.out.println("Sec Id " + securityGroupId);
         Assert.assertNotNull("Security Group id should not be null", securityGroupId);
     }
 
@@ -447,13 +450,13 @@ public class Ec2NetworkTest extends BaseTest {
     public final void createTagsTest() {
         log.info("Start create Tags test");
         Collection<String> resources = new ArrayList<String>();
-        resources.add("resource1");
+        resources.add("subnet-53ef795d");
         resources.add("resource2");
         
         Collection<Tag> tags = new ArrayList<Tag>();
         Tag tag1 = new Tag();
-        tag1.setKey("tag1");
-        tag1.setValue("value1");
+        tag1.setKey("Name");
+        tag1.setValue("Public subnet US East 1a");
         tags.add(tag1);
         
         Tag tag2 = new Tag();
@@ -531,4 +534,100 @@ public class Ec2NetworkTest extends BaseTest {
         
         Assert.assertTrue("volume should be deleted",deleteVolume(volume.getVolumeId()));
     }
+
+    /**
+     * Test of creating flow logs.
+     */
+    @Test
+    public final void createFlowLogsTest() {
+        log.info("Start flow log creation test");
+        // flow logs based on the resource of vpc or sunets.
+        createVpcTest();
+        createSubnetTest();
+
+        int count = 100;
+        String deliverLogPermissionArn = "arn:aws:iam::123456789101:role/publishFlowLogs";
+        String logGroupName = "my-flow-logs";
+        String[] traficTypeArray = {"ACCEPT", "REJECT", "ALL"};
+        List<Vpc> vpcs = describeVpcs();
+        List<Subnet> subnets = getSubnets();
+        int trafficTypeIndex = 0;
+        String resourceType = null;
+        String resourceID = null;
+        int resourceIndex = 0;
+        List<String> resourceIdCollection = new ArrayList<String>();
+        for (int i = 0; i < count; i++) {
+            trafficTypeIndex = (new Random()).nextInt(traficTypeArray.length);
+            if ((vpcs == null || vpcs.size() == 0) && (subnets == null || subnets.size() == 0)) {
+                log.error("Please create vpc or subnet before creating flow log.");
+            } else {
+                int resourceChoice = (new Random()).nextInt(2);
+                if (resourceChoice == 0) {
+                    if (vpcs == null || vpcs.size() == 0) {
+                        resourceIndex = (new Random()).nextInt(subnets.size());
+                        resourceType = "Subnet";
+                        resourceID = subnets.get(resourceIndex).getSubnetId();
+                    }
+                    else {
+                        resourceIndex = (new Random()).nextInt(vpcs.size());
+                        resourceType = "VPC";
+                        resourceID = vpcs.get(resourceIndex).getVpcId();
+                    }
+                } else {
+                    if (subnets == null || subnets.size() == 0) {
+                        resourceIndex = (new Random()).nextInt(vpcs.size());
+                        resourceType= "VPC";
+                        resourceID = vpcs.get(resourceIndex).getVpcId();
+                    } else {
+                        resourceIndex = (new Random()).nextInt(subnets.size());
+                        resourceType = "Subnet";
+                        resourceID = subnets.get(resourceIndex).getSubnetId();
+                    }
+                }
+            }
+            resourceIdCollection.add(resourceID);
+            boolean result = createFlowLogs(deliverLogPermissionArn,
+                    logGroupName, resourceIdCollection, resourceType, traficTypeArray[trafficTypeIndex]);
+
+            Assert.assertTrue("Flow Logs should be created", result);
+        }
+    }
+
+    /**
+     * Test describe flow logs.
+     */
+    @Test(timeout = TIMEOUT_LEVEL1)
+    public final void describeFlowLogsTest() {
+        log.info("Start describe flow logs test.");
+        createFlowLogsTest();
+
+        List<FlowLog> flowLogs = getFlowLogs();
+        Assert.assertNotNull("Flow Logs should not be null", flowLogs);
+        
+        log.info("FlowLogs count is " + flowLogs.size());
+        for (FlowLog fLog: flowLogs) {
+            log.info(fLog.getFlowLogId());
+        }
+    }
+
+    /**
+     * Test delete flow logs.
+     */
+    @Test(timeout = TIMEOUT_LEVEL1)
+    public final void deleteFlowLogsTest() {
+        log.info("Start delete flow logs test.");
+        createFlowLogsTest();
+
+        List<FlowLog> flowLogs = getFlowLogs();
+        Assert.assertNotNull("Flow Logs should not be null", flowLogs);
+
+        List<String> flowLogIdsList = new ArrayList<String>();
+        for (FlowLog fLog: flowLogs) {
+            flowLogIdsList.add(fLog.getFlowLogId());
+        }
+
+        boolean deleteResulte = deleteFlowLogs(flowLogIdsList);
+        Assert.assertTrue("Should delete flow logs successfully", deleteResulte);
+    }
 }
+

@@ -38,7 +38,7 @@ targetCompatibility = JavaVersion.VERSION_1_6
 import org.gradle.api.plugins.jetty.internal.Monitor
 [jettyRun, jettyRunWar]*.doLast {
    if (getStopPort() != null && getStopPort() > 0 && getStopKey() != null) {
-      Monitor monitor = new Monitor(getStopPort(), getStopKey(), server.getProxiedObject());
+      Monitor monitor = new Monitor(getStopPort(), getStopKey(), server.getProxiedObject()); 
       monitor.start();
    }
 }
@@ -49,7 +49,8 @@ dependencies {
     compile 'org.slf4j:slf4j-log4j12:1.7.5'
     compile 'log4j:log4j:1.2.17'
     compile 'org.freemarker:freemarker:2.3.20'
-    compile 'com.treelogic-swe:cxf-stub:1.0.4'
+    compile files('./cxf-stub/build/libs/cxf-stub-1.0.4.jar')
+    compile files('./cxf-stub/build/libs/cxf-stub-1.0.4-sources.jar')
     compile group: 'joda-time', name: 'joda-time', version: '2.8.1'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.0.1'
     
@@ -106,16 +107,16 @@ configurations {
 task integrationTest(type: Test) {
    testClassesDir = sourceSets.integrationTest.output.classesDir
    classpath = sourceSets.integrationTest.runtimeClasspath
-   doFirst {
-       jettyRun.daemon = true
-       jettyRun.httpPort = 8001
-       [jettyRun,jettyStop]*.stopPort = 38092
-       [jettyRun,jettyStop]*.stopKey = 'bar'
-       jettyRun.execute()
-   }
-   doLast {
-       jettyStop.execute()
-   }
+   //doFirst {
+   //    jettyRun.daemon = true
+   //    jettyRun.httpPort = 8000
+   //    [jettyRun,jettyStop]*.stopPort = 38092
+   //    [jettyRun,jettyStop]*.stopKey = 'bar'
+   //    jettyRun.execute()
+   //}
+   //doLast {
+   //    jettyStop.execute()
+   //}
 }
 
 check.dependsOn integrationTest
@@ -147,7 +148,8 @@ task run(dependsOn: jettyRun) {
 }
 
 test {
-    testLogging.showStandardStreams = false
+    testClassesDir = sourceSets.integrationTest.output.classesDir
+    classpath = sourceSets.integrationTest.runtimeClasspath
 }
 
 jar {

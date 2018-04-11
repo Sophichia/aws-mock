@@ -37,6 +37,7 @@ import com.tlswe.awsmock.ec2.cxf_generated.AvailabilityZoneItemType;
 import com.tlswe.awsmock.ec2.cxf_generated.AvailabilityZoneSetType;
 import com.tlswe.awsmock.ec2.cxf_generated.BlockDeviceMappingItemType;
 import com.tlswe.awsmock.ec2.cxf_generated.BlockDeviceMappingType;
+import com.tlswe.awsmock.ec2.cxf_generated.CreateFlowLogsResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.CreateInternetGatewayResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.CreateRouteResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.CreateRouteTableResponseType;
@@ -45,6 +46,7 @@ import com.tlswe.awsmock.ec2.cxf_generated.CreateSubnetResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.CreateTagsResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.CreateVolumeResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.CreateVpcResponseType;
+import com.tlswe.awsmock.ec2.cxf_generated.DeleteFlowLogsResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DeleteInternetGatewayResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DeleteRouteTableResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DeleteSecurityGroupResponseType;
@@ -53,6 +55,9 @@ import com.tlswe.awsmock.ec2.cxf_generated.DeleteTagsResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DeleteVolumeResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DeleteVpcResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DescribeAvailabilityZonesResponseType;
+import com.tlswe.awsmock.ec2.cxf_generated.DescribeFlowLogsResponseInfoType;
+import com.tlswe.awsmock.ec2.cxf_generated.DescribeFlowLogsResponseItemType;
+import com.tlswe.awsmock.ec2.cxf_generated.DescribeFlowLogsResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DescribeImagesResponseInfoType;
 import com.tlswe.awsmock.ec2.cxf_generated.DescribeImagesResponseItemType;
 import com.tlswe.awsmock.ec2.cxf_generated.DescribeImagesResponseType;
@@ -67,6 +72,7 @@ import com.tlswe.awsmock.ec2.cxf_generated.DescribeVolumesSetItemResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DescribeVolumesSetResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DescribeVpcsResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.EbsBlockDeviceType;
+import com.tlswe.awsmock.ec2.cxf_generated.FlowLogIdSetType;
 import com.tlswe.awsmock.ec2.cxf_generated.GroupItemType;
 import com.tlswe.awsmock.ec2.cxf_generated.GroupSetType;
 import com.tlswe.awsmock.ec2.cxf_generated.InstanceStateChangeSetType;
@@ -80,6 +86,8 @@ import com.tlswe.awsmock.ec2.cxf_generated.IpPermissionType;
 import com.tlswe.awsmock.ec2.cxf_generated.PlacementResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.ReservationInfoType;
 import com.tlswe.awsmock.ec2.cxf_generated.ReservationSetType;
+import com.tlswe.awsmock.ec2.cxf_generated.ResourceTagSetItemType;
+import com.tlswe.awsmock.ec2.cxf_generated.ResourceTagSetType;
 import com.tlswe.awsmock.ec2.cxf_generated.RouteSetType;
 import com.tlswe.awsmock.ec2.cxf_generated.RouteTableAssociationSetType;
 import com.tlswe.awsmock.ec2.cxf_generated.RouteTableSetType;
@@ -97,10 +105,12 @@ import com.tlswe.awsmock.ec2.cxf_generated.SubnetType;
 import com.tlswe.awsmock.ec2.cxf_generated.TagSetItemType;
 import com.tlswe.awsmock.ec2.cxf_generated.TagSetType;
 import com.tlswe.awsmock.ec2.cxf_generated.TerminateInstancesResponseType;
+import com.tlswe.awsmock.ec2.cxf_generated.UnsuccessfulSetType;
 import com.tlswe.awsmock.ec2.cxf_generated.VpcSetType;
 import com.tlswe.awsmock.ec2.cxf_generated.VpcType;
 import com.tlswe.awsmock.ec2.exception.BadEc2RequestException;
 import com.tlswe.awsmock.ec2.model.AbstractMockEc2Instance;
+import com.tlswe.awsmock.ec2.model.MockFlowLog;
 import com.tlswe.awsmock.ec2.model.MockInternetGateway;
 import com.tlswe.awsmock.ec2.model.MockInternetGatewayAttachmentType;
 import com.tlswe.awsmock.ec2.model.MockIpPermissionType;
@@ -176,6 +186,12 @@ public final class MockEC2QueryHandler {
      * Instance of {@link MockEc2Controller} used in this class that controls mock Ec2 Instances.
      */
     private final MockEc2Controller mockEc2Controller = MockEc2Controller.getInstance();
+
+    /**
+     * Instance of {@link MockFlowLogController} used in this class that controls
+     * mock flow logs.
+     */
+    private final MockFlowLogController mockFlowLogController = MockFlowLogController.getInstance();
 
     /**
      * Instance of {@link MockVpcController} used in this class that controls mock Vpc Instances.
@@ -311,6 +327,12 @@ public final class MockEC2QueryHandler {
      * The remaining paged records of instance IDs per token by 'describeInstances'.
      */
     private static Map<String, Set<String>> token2RemainingDescribedInstanceIDs =
+            new ConcurrentHashMap<String, Set<String>>();
+
+    /**
+     * The remaining paged records of flow log IDs per token by 'describeFlowLog'.
+     */
+    private static Map<String, Set<String>> token2RemainingDescribeFlowLogsIDs =
             new ConcurrentHashMap<String, Set<String>>();
 
     /**
@@ -897,22 +919,77 @@ public final class MockEC2QueryHandler {
                             } else if ("DescribeTags".equals(action)) {
                                 responseXml = JAXBUtil.marshall(describeTags(),
                                         "DescribeTagsResponse", version);
-                            } else if ("DescribeRegions".equals(action)) {
-                            	// TODO with new Model
-                            	
-                            } else if ("DescribeNetworkInterfaces".equals(action)) {
-                            	// TODO with new Model
-                            	// Currently not sure if it belongs to "needs instanceIDS" category
-                            } else if (" DescribeVpnConnections".equals(action)) {
-                            	// TODO with new Model
-                            } else if ("DescribeVpnGateways".equals(action)) {
-                            	// TODO probably can combine model with vpn connections
-                            } else if ("DescribeVpcPeeringConnections".equals(action)) {
-                            	// TODO add to VPC model
-                            } else if ("DescribeCustomerGateways".equals(action)) {
-                            	// TODO probably need with new model
-                            } else if ("DescribeVpnGateways".equals(action)) {
-                            	// TODO find whether add to gate or vpn model.
+                            } else if ("DescribeFlowLogs".equals(action)) {
+
+                                String[] paramNextToken = queryParams.get("NextToken");
+                                String nextToken = null == paramNextToken || paramNextToken.length == 0 ? null
+                                        : paramNextToken[0];
+                                String[] paramMaxResults = queryParams.get("MaxResults");
+                                int maxResults = null == paramMaxResults || paramMaxResults.length == 0 ? 0
+                                        : NumberUtils.toInt(paramMaxResults[0]);
+
+                                Set<String> flowLogIDs = parseFlowLogsID(queryParams);
+
+                                responseXml = JAXBUtil.marshall(describeFlowLogs(flowLogIDs, nextToken, maxResults),
+                                        "DescribeFlowLogsResponse", version);
+                            } else if ("CreateFlowLogs".equals(action)) {
+
+                                String[] deliverLogsPermissionArnParam = queryParams.get("DeliverLogsPermissionArn");
+                                String deliverLogsPermissionArn = null == deliverLogsPermissionArnParam
+                                        || deliverLogsPermissionArnParam.length == 0 ? null
+                                                : deliverLogsPermissionArnParam[0];
+
+                                String[] logGroupNameParam = queryParams.get("LogGroupName");
+                                String logGroupName = null == logGroupNameParam || logGroupNameParam.length == 0 ? null
+                                        : logGroupNameParam[0];
+
+                                int logsCounter = 1;
+                                List<String> resources = new ArrayList<String>();
+
+                                while (true) {
+                                    if (queryParams.containsKey("ResourceId." + logsCounter)) {
+                                        String[] resourceIdParam = queryParams.get("ResourceId." + logsCounter);
+                                        String resourceId = null == resourceIdParam || resourceIdParam.length == 0
+                                                ? null : resourceIdParam[0];
+                                        resources.add(resourceId);
+                                        logsCounter++;
+                                    } else {
+                                        break;
+                                    }
+                                }
+                                String[] logResources = resources.toArray(new String[0]);
+
+                                String[] resourceTypeParam = queryParams.get("ResourceType");
+                                String resourceType = null == resourceTypeParam || resourceTypeParam.length == 0 ? null
+                                        : resourceTypeParam[0];
+
+                                String[] trafficTypeParam = queryParams.get("TrafficType");
+                                String trafficType = null == trafficTypeParam || trafficTypeParam.length == 0 ? null
+                                        : trafficTypeParam[0];
+
+                                responseXml = JAXBUtil.marshall(createFlowLogs(deliverLogsPermissionArn, logGroupName,
+                                        logResources, resourceType, trafficType), "CreateFlowLogsResponse", version);
+
+                                System.out.println(responseXml);
+
+                            } else if ("DeleteFlowLogs".equals(action)) {
+
+                                int flowLogsCounter = 1;
+                                List<String> flowLogIds = new ArrayList<String>();
+                                while (true) {
+                                    if (queryParams.containsKey("FlowLogId." + flowLogsCounter)) {
+                                        String[] flowLogIdParam = queryParams.get("FlowLogId." + flowLogsCounter);
+                                        String flowLogId = null == flowLogIdParam || flowLogIdParam.length == 0 ? null
+                                                : flowLogIdParam[0];
+                                        flowLogIds.add(flowLogId);
+                                        flowLogsCounter++;
+                                    } else {
+                                        break;
+                                    }
+                                }
+
+                                responseXml = JAXBUtil.marshall(deleteFlowLogs(flowLogIds), "DeleteFlowLogsResponse",
+                                        version);
                             } else {
                                 // unsupported/unimplemented action - write an
                                 // error
@@ -1761,7 +1838,7 @@ public final class MockEC2QueryHandler {
         DescribeSubnetsResponseType ret = new DescribeSubnetsResponseType();
         ret.setRequestId(UUID.randomUUID().toString());
         SubnetSetType subnetSetType = new SubnetSetType();
-
+        //System.out.println("Subnet Count " + mockSubnetController.describeSubnets().size());
         for (Iterator<MockSubnet> mockSubnet = mockSubnetController.describeSubnets()
                 .iterator(); mockSubnet.hasNext();) {
             MockSubnet item = mockSubnet.next();
@@ -1779,14 +1856,40 @@ public final class MockEC2QueryHandler {
             subnetType.setAvailableIpAddressCount(item.getAvailableIpAddressCount());
             subnetType.setAvailabilityZone(currentRegion);
             subnetType.setDefaultForAz(false);
-            subnetType.setMapPublicIpOnLaunch(false);
+            subnetType.setMapPublicIpOnLaunch(true);
 
+            ResourceTagSetItemType tagItem = getTag(subnetType.getSubnetId());
+            if (tagItem != null) {
+                ResourceTagSetType resourceTagSetType = new ResourceTagSetType();
+                resourceTagSetType.getItem().add(tagItem);
+                subnetType.setTagSet(resourceTagSetType);
+            }
             subnetSetType.getItem().add(subnetType);
         }
 
         ret.setSubnetSet(subnetSetType);
 
         return ret;
+    }
+
+    /** Get tag for Resource Id.
+     *
+     * @param resourceId Resource Id.
+     * @return ResourceTagSetItemType for resourceId
+     */
+    private ResourceTagSetItemType getTag(final String resourceId) {
+        ResourceTagSetItemType tagItem = null;
+
+        List<MockTags> tags = mockTagsController.describeTags();
+        for (MockTags tag : tags) {
+            if (tag.getResourcesSet().contains(resourceId)) {
+                tagItem = new ResourceTagSetItemType();
+                tagItem.setKey("Name");
+                tagItem.setValue(tag.getTagSet().get("Name"));
+            }
+        }
+
+        return tagItem;
     }
 
     /**
@@ -2059,6 +2162,189 @@ public final class MockEC2QueryHandler {
             log.error("fatal exception caught: {}", e.getMessage());
             e.printStackTrace();
         }
+        return ret;
+    }
+
+    /**
+     * Handles "createFlowLogs" request to create flow logs.
+     *
+     * @param deliverLogsPermissionArn
+     *            The ARN for the IAM role that's used to post flow logs to a
+     *            CloudWatch Logs log group.
+     * @param logGroupName
+     *            The name of the CloudWatch log group.
+     * @param resourceIds
+     *            One or more subnet, network interface, or VPC IDs.
+     * @param resourceType
+     *            The type of resource on which to create the flow log.
+     * @param trafficType
+     *            The type of traffic to log.
+     * @return A CreateFlowLogsResponseType
+     */
+    private CreateFlowLogsResponseType createFlowLogs(final String deliverLogsPermissionArn, final String logGroupName,
+            final String[] resourceIds, final String resourceType, final String trafficType) {
+        CreateFlowLogsResponseType ret = new CreateFlowLogsResponseType();
+        FlowLogIdSetType setType = new FlowLogIdSetType();
+        List<String> flowLogIdSet = setType.getItem();
+        if (flowLogIdSet == null) {
+            flowLogIdSet = new ArrayList<String>();
+        }
+        MockFlowLog mockFlowLog = null;
+        String tmpItem = null;
+        for (String id : resourceIds) {
+            mockFlowLog = mockFlowLogController.createFlowLog(deliverLogsPermissionArn, logGroupName, id, resourceType,
+                    trafficType);
+            tmpItem = new String(mockFlowLog.getFlowLogId());
+            flowLogIdSet.add(tmpItem);
+        }
+        ret.setRequestId(UUID.randomUUID().toString());
+        ret.setUnsuccessful(new UnsuccessfulSetType());
+        ret.setFlowLogIdSet(setType);
+        return ret;
+    }
+
+    /**
+     * Handles "describeFlowLogs" request, with filters of flowLogsIds and
+     * flowLogsStates, and returns response with all flow logs if no flowLogsIDs
+     * specified.
+     *
+     * @param flowLogsIDs
+     *            a filter of specified flow log IDs for target flow log to
+     *            describe.
+     * @param token
+     *            token for next page
+     * @param pMaxResults
+     *            max result in page, if over 1000, only 1000 logs would be returned
+     * @return a DescribeFlowLogsResponseType with information for all flow logs to
+     *         describe
+     */
+
+    private DescribeFlowLogsResponseType describeFlowLogs(final Set<String> flowLogsIDs, final String token,
+            final int pMaxResults) {
+
+        Set<String> idsInThisPageIfToken = null;
+        if (null != token && token.length() > 0) {
+            if (null != flowLogsIDs && flowLogsIDs.size() > 0) {
+                throw new BadEc2RequestException("DescribeFlowLogs",
+                        "AWS Error Code: InvalidParameterCombination, AWS Error Message: The parameter flowLogsIDs "
+                                + "cannot be used with the parameter nextToken");
+            }
+            // should retrieve next page using token
+            idsInThisPageIfToken = token2RemainingDescribeFlowLogsIDs.get(token);
+            if (null == idsInThisPageIfToken) {
+                // mock real AWS' 400 error message in case of invalid token
+                throw new BadEc2RequestException("DescribeInstances",
+                        "AWS Error Code: InvalidParameterValue, AWS Error Message: Unable to parse pagination token");
+            }
+        }
+
+        /**
+         * The calculated maxResults used in pagination.
+         */
+        int maxResults = pMaxResults;
+
+        if (maxResults > 0) {
+            if (null != flowLogsIDs && flowLogsIDs.size() > 0) {
+                throw new BadEc2RequestException("DescribeInstances",
+                        "AWS Error Code: InvalidParameterCombination, AWS Error Message: The parameter flowLogsIDs "
+                                + "cannot be used with the parameter maxResults");
+            }
+        } else {
+            maxResults = MAX_RESULTS_DEFAULT;
+        }
+
+        DescribeFlowLogsResponseType ret = new DescribeFlowLogsResponseType();
+        ret.setRequestId(UUID.randomUUID().toString());
+        DescribeFlowLogsResponseInfoType resSet = new DescribeFlowLogsResponseInfoType();
+
+        mockFlowLogController.getAllFlowLogs();
+
+        List<String> idsToDescribe = null;
+
+        if (null != token && token.length() > 0) {
+            idsToDescribe = new ArrayList<String>(token2RemainingDescribeFlowLogsIDs.remove(token));
+        } else {
+            idsToDescribe = mockFlowLogController.listFlowLogIDs(flowLogsIDs);
+        }
+
+        if (idsToDescribe.size() > maxResults) {
+            // generate next token (for next page of results) and put the remaining IDs to
+            // the map for later use
+            String newToken = generateToken();
+            // deduct the current page logs from the total remaining and put the rest into
+            // map again, with new
+            // token as key
+            token2RemainingDescribedInstanceIDs.put(newToken,
+                    new TreeSet<String>(idsToDescribe.subList(maxResults, idsToDescribe.size())));
+            // set idsToDescribe as the top maxResults logs IDs
+            idsToDescribe = new ArrayList<String>(idsToDescribe.subList(0, maxResults));
+            // put the new token into response
+            ret.setNextToken(newToken);
+        }
+
+        List<String> invalidFlowLogIDs = new ArrayList<String>();
+
+        for (String id : idsToDescribe) {
+            MockFlowLog flowLog = mockFlowLogController.getMockFlowLog(id);
+            if (null == flowLog) {
+                invalidFlowLogIDs.add(id);
+            } else {
+                DescribeFlowLogsResponseItemType responseItem = new DescribeFlowLogsResponseItemType();
+
+                responseItem.setCreationtime(flowLog.getCreationTime());
+                responseItem.setDeliverLogsErrorMessage(flowLog.getDeliverLogsErrorMessage());
+                responseItem.setDeliverLogsPermissionArn(flowLog.getDeliverLogsPermissionArn());
+                responseItem.setDeliverLogsStatus(flowLog.getDeliverLogsStatus());
+                responseItem.setFlowLogId(flowLog.getFlowLogId());
+                responseItem.setFlowLogStatus(flowLog.getFlowLogStatus());
+                responseItem.setLogGroupName(flowLog.getLogGroupName());
+                responseItem.setResourseId(flowLog.getResourseId());
+                responseItem.setTrafficType(flowLog.getTrafficType());
+
+                resSet.getItem().add(responseItem);
+            }
+        }
+        ret.setFlowLogSet(resSet);
+
+        return ret;
+    }
+
+    /**
+     * Handles "deleteFlowLogs" request and delete flow logs and return response.
+     *
+     * @param flowLogIds
+     *            List of flow Log Id to be deleted.
+     * @return a DeleteFlowLogsResponseType with Status.
+     */
+    private DeleteFlowLogsResponseType deleteFlowLogs(final List<String> flowLogIds) {
+
+        DeleteFlowLogsResponseType ret = new DeleteFlowLogsResponseType();
+        ret.setRequestId(UUID.randomUUID().toString());
+        for (String id : flowLogIds) {
+            mockFlowLogController.deleteFlowLog(id);
+        }
+        return ret;
+    }
+
+    /**
+     * Parse flow log IDs from query parameters.
+     *
+     * @param queryParams
+     *            map of query parameters in http request
+     * @return a set of flow log IDs in the parawmeter map
+     */
+    private Set<String> parseFlowLogsID(final Map<String, String[]> queryParams) {
+        Set<String> ret = new TreeSet<String>();
+
+        Set<Map.Entry<String, String[]>> entries = queryParams.entrySet();
+        for (Map.Entry<String, String[]> entry : entries) {
+            if (null != entry && null != entry.getKey() && entry.getKey().matches("FlowLogId\\.(\\d)+")) {
+                if (null != entry.getValue() && entry.getValue().length > 0) {
+                    ret.add(entry.getValue()[0]);
+                }
+            }
+        }
+
         return ret;
     }
 }

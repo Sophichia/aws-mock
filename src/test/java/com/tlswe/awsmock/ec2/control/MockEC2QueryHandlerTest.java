@@ -17,21 +17,27 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.bind.JAXB;
 
+import org.apache.http.protocol.HttpService;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.api.mockito.internal.invocation.MockitoMethodInvocationControl;
 import org.powermock.api.support.membermodification.MemberModifier;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.powermock.reflect.Whitebox;
 
+import com.amazonaws.services.ec2.model.DescribeFlowLogsResult;
 import com.tlswe.awsmock.common.util.Constants;
 import com.tlswe.awsmock.common.util.PropertiesUtils;
 import com.tlswe.awsmock.ec2.cxf_generated.AvailabilityZoneItemType;
+import com.tlswe.awsmock.ec2.cxf_generated.CreateFlowLogsResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.CreateInternetGatewayResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.CreateRouteTableResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.CreateSecurityGroupResponseType;
@@ -39,12 +45,14 @@ import com.tlswe.awsmock.ec2.cxf_generated.CreateSubnetResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.CreateTagsResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.CreateVolumeResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.CreateVpcResponseType;
+import com.tlswe.awsmock.ec2.cxf_generated.DeleteFlowLogsResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DeleteInternetGatewayResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DeleteRouteTableResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DeleteTagsResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DeleteVolumeResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DeleteVpcResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DescribeAvailabilityZonesResponseType;
+import com.tlswe.awsmock.ec2.cxf_generated.DescribeFlowLogsResponseType;
 import com.tlswe.awsmock.ec2.cxf_generated.DescribeImagesResponseInfoType;
 import com.tlswe.awsmock.ec2.cxf_generated.DescribeImagesResponseItemType;
 import com.tlswe.awsmock.ec2.cxf_generated.DescribeImagesResponseType;
@@ -74,7 +82,7 @@ import com.tlswe.example.CustomMockEc2Instance;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ MockEC2QueryHandler.class, MockEc2Controller.class, MockInternetGatewayController.class, MockRouteTableController.class,
     MockSubnetController.class, MockVolumeController.class, MockVpcController.class, MockTagsController.class, MockSecurityGroupController.class,
-    JAXBUtil.class })
+    JAXBUtil.class, MockFlowLogController.class })
 public class MockEC2QueryHandlerTest {
 
     private static Properties properties = new Properties();
@@ -224,7 +232,7 @@ public class MockEC2QueryHandlerTest {
          //Attach Gateway
          Whitebox.invokeMethod(handler, "attachInternetGateway", retGatewary.getInternetGateway().getInternetGatewayId(),  ret.getVpc().getVpcId());
 
-        
+
         DescribeInternetGatewaysResponseType describeInternetGatewaysResponseType = Whitebox
                 .invokeMethod(handler,
                         "describeInternetGateways");
@@ -298,7 +306,6 @@ public class MockEC2QueryHandlerTest {
         Assert.assertTrue(describeRouteTablesResponseType.getSubnetSet().getItem().size() == 1);
     }
 
-    
     @Test
     public void Test_describeVolumes() throws Exception {
     	MockEC2QueryHandler handler = MockEC2QueryHandler.getInstance();
@@ -423,6 +430,39 @@ public class MockEC2QueryHandlerTest {
         f.set(MockEC2QueryHandler.class, new TreeSet<String>());
 
     }
+
+    @Test
+    public void Test_describeFlowLogs() throws Exception {
+
+        MockEC2QueryHandler handler = MockEC2QueryHandler.getInstance();
+
+        MockFlowLogController controller = Mockito.spy(MockFlowLogController.class);
+        Whitebox.setInternalState(handler, "mockFlowLogController", controller);
+
+        String[] resources = new String[1];
+        resources[0] = "vpc12345678";
+        CreateFlowLogsResponseType retCreate = Whitebox.invokeMethod(handler, "createFlowLogs",
+                "arn:aws:iam::123456789101:role/publishFlowLogs",
+                "my-flow-logs", resources, "VPC", "ACCEPT");
+
+        Assert.assertTrue(retCreate != null);
+        Assert.assertTrue(retCreate.getFlowLogIdSet() != null);
+
+        DescribeFlowLogsResponseType retDescribe = Whitebox.invokeMethod(handler, "describeFlowLogs",
+                new TreeSet<String> (), "", 50);
+
+        Assert.assertTrue(retDescribe != null);
+        Assert.assertTrue(retDescribe.getFlowLogSet().getItem().size() == 1);
+        Assert.assertTrue(retDescribe.getFlowLogSet().getItem().get(0).getFlowLogId() != null);
+
+        List<String> flowLogIdSet = new ArrayList<String>();
+        flowLogIdSet.add(retDescribe.getFlowLogSet().getItem().get(0).getFlowLogId());
+        DeleteFlowLogsResponseType retDelete = Whitebox.invokeMethod(handler, "deleteFlowLogs",
+                flowLogIdSet);
+
+        Assert.assertTrue(retDelete != null);
+    }
+
     @Test
     public void Test_termianteInstances() throws Exception {
 
@@ -858,6 +898,21 @@ public class MockEC2QueryHandlerTest {
         Assert.assertFalse(instanceIDs.contains("i-dummy"));
     }
 
+    @Test
+    public void Test_parseFlowLogsIDs() throws Exception {
+
+        Map<String, String[]> queryParams = new HashMap<String, String[]>();
+        queryParams.put("FlowLogId.1", new String[] { "fl-23333333" });
+        queryParams.put("FlowLogId.2", new String[] { "fl-23333332" });
+        queryParams.put("dummy", new String[] { "i-dummy" }); // should not be retrieved
+
+        MockEC2QueryHandler handler = MockEC2QueryHandler.getInstance();
+        Set<String> flowLogIds = Whitebox.invokeMethod(handler, "parseFlowLogsID", queryParams);
+
+        Assert.assertTrue(flowLogIds.contains("fl-23333333"));
+        Assert.assertTrue(flowLogIds.contains("fl-23333332"));
+        Assert.assertFalse(flowLogIds.contains("i-dummy"));
+    }
     @Test
     public void Test_parseInstanceStates() throws Exception {
 
@@ -2315,4 +2370,84 @@ public class MockEC2QueryHandlerTest {
         String responseString = sw.toString();
         Assert.assertTrue(responseString.contains("Response"));
     }
+
+    @Test
+    public void Test_handleCreateFlowLogs() throws IOException {
+
+        HttpServletResponse response = Mockito.spy(HttpServletResponse.class);
+        MockEC2QueryHandler handler = MockEC2QueryHandler.getInstance();
+
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+
+        Mockito.when(response.getWriter()).thenReturn(pw);
+        Mockito.when(JAXBUtil.marshall(Mockito.any(),  Mockito.eq("CreateFlowLogsResponse"),
+                Mockito.eq(VERSION_1))).thenReturn(DUMMY_XML_RESPONSE);
+
+        Map<String, String[]> queryParams = new HashMap<String, String[]>();
+
+        queryParams.put(VERSION_KEY, new String[] { VERSION_1 });
+        queryParams.put(ACTION_KEY, new String[] { "CreateFlowLogs" });
+        queryParams.put("ResourceId.1", new String[] { "dopt-38f7a057" });
+        queryParams.put("DeliverLogsPermissionArn", new String[] { "arn:aws:iam::123456789101:role/publishFlowLogs" });
+        queryParams.put("LogGroupName", new String[] { "my-flow-logs" });
+        queryParams.put("ResourceType", new String[] { "VPC" });
+        queryParams.put("TrafficType", new String[] { "ACCEPT" });
+
+        handler.handle(queryParams, null, response);
+
+        String responseString = sw.toString();
+        Assert.assertTrue(responseString.equals(DUMMY_XML_RESPONSE));
+    }
+
+    @Test
+    public void Test_handleDescribeFlowLogs() throws IOException {
+
+        HttpServletResponse response = Mockito.spy(HttpServletResponse.class);
+        MockEC2QueryHandler handler = MockEC2QueryHandler.getInstance();
+
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+
+        Mockito.when(response.getWriter()).thenReturn(pw);
+        Mockito.when(JAXBUtil.marshall(Mockito.any(), Mockito.eq("DescribeFlowLogsResponse"),
+                Mockito.eq(VERSION_1))).thenReturn(DUMMY_XML_RESPONSE);
+
+        Map<String, String[]> queryParams = new HashMap<String, String[]>();
+
+        queryParams.put(VERSION_KEY, new String[] { VERSION_1 });
+        queryParams.put(ACTION_KEY, new String[] { "DescribeFlowLogs" });
+        queryParams.put("MaxResults", new String[] { "50" });
+
+        handler.handle(queryParams, null, response);
+
+        String responseString = sw.toString();
+        Assert.assertTrue(responseString.equals(DUMMY_XML_RESPONSE));
+    }
+
+    @Test
+    public void Test_handleDeleteFlowLogs() throws IOException {
+
+        HttpServletResponse response = Mockito.spy(HttpServletResponse.class);
+        MockEC2QueryHandler handler = MockEC2QueryHandler.getInstance();
+
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+
+        Mockito.when(response.getWriter()).thenReturn(pw);
+        Mockito.when(JAXBUtil.marshall(Mockito.any(), Mockito.eq("DeleteFlowLogsResponse"),
+                Mockito.eq(VERSION_1))).thenReturn(DUMMY_XML_RESPONSE);
+
+        Map<String, String[]> queryParams = new HashMap<String, String[]>();
+
+        queryParams.put(VERSION_KEY, new String[] { VERSION_1 });
+        queryParams.put(ACTION_KEY, new String[] { "DeleteFlowLogs" });
+        queryParams.put("FlowLogId.1", new String[] { "fl-12345678" });
+
+        handler.handle(queryParams, null, response);
+
+        String responseString = sw.toString();
+        Assert.assertTrue(responseString.equals(DUMMY_XML_RESPONSE));
+    }
 }
+

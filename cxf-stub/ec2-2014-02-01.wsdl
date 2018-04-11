@@ -25,7 +25,7 @@
         <xs:sequence>
           <xs:element name="imageLocation" type="xs:string" minOccurs="0"/>
           <xs:element name="name" type="xs:string"/>
-          <xs:element name="description" type="xs:string" minOccurs="0"/>
+          <xs:element name="description" typeF="xs:string" minOccurs="0"/>
           <xs:element name="architecture" type="xs:string" minOccurs="0"/>
           <xs:element name="kernelId" type="xs:string" minOccurs="0"/>
           <xs:element name="ramdiskId" type="xs:string" minOccurs="0"/>
@@ -4634,6 +4634,93 @@
           </xs:choice>
         </xs:sequence>
       </xs:complexType>
+      <xs:element name="CreateFlowLogs" type="tns:CreateFlowLogsType"/>
+      <xs:element name="CreateFlowLogsResponse" type="tns:CreateFlowLogsResponseType"/>
+      <xs:element name="DescribeFlowLogs" type="tns:DescribeFlowLogsType"/>
+      <xs:element name="DescribeFlowLogsResponse" type="tns:DescribeFlowLogsResponseType"/>
+      <xs:element name="DeleteFlowLogs" type="tns:DeleteFlowLogsType"/>
+      <xs:element name="DeleteFlowLogsResponse" type="tns:DeleteFlowLogsResponseType"/>
+      <xs:complexType name="CreateFlowLogsType">
+        <xs:sequence>
+          <xs:element name="deliverLogsPermissionArn" type="xs:string"/>
+          <xs:element name="logGroupName" type="xs:string"/>
+          <xs:element name="resourcesIdSet" type="tns:ResourceIdSetType"/>
+          <xs:element name="resourceType" type="xs:string"/>
+          <xs:element name="trafficType" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="CreateFlowLogsResponseType">
+        <xs:sequence>
+          <xs:element name="requestId" type="xs:string"/>
+          <xs:element name="unsuccessful" type="tns:UnsuccessfulSetType"/>
+          <xs:element name="flowLogIdSet" type="tns:FlowLogIdSetType"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="FlowLogIdSetType">
+        <xs:sequence>
+          <xs:element name="item" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="UnsuccessfulSetType">
+        <xs:sequence>
+          <xs:element name="item" type="tns:UnsuccessfulSetItemType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="UnsuccessfulSetItemType">
+        <xs:sequence>
+          <xs:element name="error" type="tns:UnsuccessfullItemError"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="UnsuccessfullItemError">
+        <xs:sequence>
+          <xs:element name="code" type="xs:string"/>
+          <xs:element name="massage" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="DescribeFlowLogsType">
+        <xs:sequence>
+          <xs:element name="filterSet" type="tns:FilterSetType" minOccurs="0"/>
+          <xs:element name="flowLogIdSet" type="tns:FlowLogIdSetType" minOccurs="0"/>
+          <xs:element name="maxResults" type="xs:int" minOccurs="0"/>
+          <xs:element name="nextToken" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="DescribeFlowLogsResponseType">
+        <xs:sequence>
+          <xs:element name="requestId" type="xs:string"/>
+          <xs:element name="nextToken" type="xs:string"/>
+          <xs:element name="flowLogSet" type="tns:DescribeFlowLogsResponseInfoType"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="DescribeFlowLogsResponseInfoType">
+        <xs:sequence>
+          <xs:element name="item" type="tns:DescribeFlowLogsResponseItemType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="DescribeFlowLogsResponseItemType">
+        <xs:sequence>
+          <xs:element name="creationtime" type="xs:string" minOccurs="0"/>
+          <xs:element name="deliverLogsErrorMessage" type="xs:string" minOccurs="0"/>
+          <xs:element name="deliverLogsPermissionArn" type="xs:string" minOccurs="0"/>
+          <xs:element name="deliverLogsStatus" type="xs:string" minOccurs="0"/>
+          <xs:element name="flowLogId" type="xs:string" minOccurs="0"/>
+          <xs:element name="flowLogStatus" type="xs:string" minOccurs="0"/>
+          <xs:element name="logGroupName" type="xs:string" minOccurs="0"/>
+          <xs:element name="resourseId" type="xs:string" minOccurs="0"/>
+          <xs:element name="trafficType" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="DeleteFlowLogsType">
+        <xs:sequence>
+          <xs:element name="flowLogIdSet" type="tns:FlowLogIdSetType"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="DeleteFlowLogsResponseType">
+        <xs:sequence>
+          <xs:element name="requestId" type="xs:string"/>
+          <xs:element name="unsuccessful" type="tns:UnsuccessfulSetType"/>
+        </xs:sequence>
+      </xs:complexType>
     </xs:schema>
   </types>
   <message name="AcceptVpcPeeringConnectionRequestMsg">
@@ -4912,6 +4999,12 @@
   <message name="CreateVpnGatewayResponseMsg">
     <part name="CreateVpnGatewayResponseMsgResp" element="tns:CreateVpnGatewayResponse"/>
   </message>
+  <message name="CreateFlowLogsRequestMsg">
+    <part name="CreateFlowLogsRequestMsgReq" element="tns:CreateFlowLogs"/>
+  </message>
+  <message name="CreateFlowLogsResponseMsg">
+    <part name="CreateFlowLogsResponseMsgResp" element="tns:CreateFlowLogsResponse"/>
+  </message>
   <message name="DeactivateLicenseRequestMsg">
     <part name="DeactivateLicenseRequestMsgReq" element="tns:DeactivateLicense"/>
   </message>
@@ -5043,6 +5136,12 @@
   </message>
   <message name="DeleteVpnGatewayResponseMsg">
     <part name="DeleteVpnGatewayResponseMsgResp" element="tns:DeleteVpnGatewayResponse"/>
+  </message>
+  <message name="DeleteFlowLogsRequestMsg">
+    <part name="DeleteFlowLogsRequestMsgReq" element="tns:DeleteFlowLogs"/>
+  </message>
+  <message name="DeleteFlowLogsResponseMsg">
+    <part name="DeleteFlowLogsResponseMsgResp" element="tns:DeleteFlowLogsResponse"/>
   </message>
   <message name="DeregisterImageRequestMsg">
     <part name="DeregisterImageRequestMsgReq" element="tns:DeregisterImage"/>
@@ -5301,6 +5400,12 @@
   </message>
   <message name="DescribeVpnGatewaysResponseMsg">
     <part name="DescribeVpnGatewaysResponseMsgResp" element="tns:DescribeVpnGatewaysResponse"/>
+  </message>
+  <message name="DescribeFlowLogsRequestMsg">
+    <part name="DescribeFlowLogsRequestMsgReq" element="tns:DescribeFlowLogs"/>
+  </message>
+  <message name="DescribeFlowLogsResponseMsg" >
+    <part name="DescribFlowLogsResponseMsgResp" element="tns:DescribeFlowLogsResponse"/>
   </message>
   <message name="DetachInternetGatewayRequestMsg">
     <part name="DetachInternetGatewayRequestMsgReq" element="tns:DetachInternetGateway"/>
@@ -5757,6 +5862,10 @@
       <input message="tns:CreateVpnGatewayRequestMsg"/>
       <output message="tns:CreateVpnGatewayResponseMsg"/>
     </operation>
+	<operation name="CreateFlowLogs">
+      <input message="tns:CreateFlowLogsRequestMsg"/>
+      <output message="tns:CreateFlowLogsResponseMsg"/>
+    </operation>
     <operation name="DeactivateLicense">
       <input message="tns:DeactivateLicenseRequestMsg"/>
       <output message="tns:DeactivateLicenseResponseMsg"/>
@@ -5844,6 +5953,10 @@
     <operation name="DeleteVpnGateway">
       <input message="tns:DeleteVpnGatewayRequestMsg"/>
       <output message="tns:DeleteVpnGatewayResponseMsg"/>
+    </operation>
+    <operation name="DeleteFlowLogs">
+      <input message="tns:DeleteFlowLogsRequestMsg"/>
+      <output message="tns:DeleteFlowLogsResponseMsg"/>
     </operation>
     <operation name="DeregisterImage">
       <input message="tns:DeregisterImageRequestMsg"/>
@@ -6016,6 +6129,10 @@
     <operation name="DescribeVpnGateways">
       <input message="tns:DescribeVpnGatewaysRequestMsg"/>
       <output message="tns:DescribeVpnGatewaysResponseMsg"/>
+    </operation>
+    <operation name="DescribeFlowLogs">
+      <input message="tns:DescribeFlowLogsRequestMsg"/>
+      <output message="tns:DescribeFlowLogsResponseMsg"/>
     </operation>
     <operation name="DetachInternetGateway">
       <input message="tns:DetachInternetGatewayRequestMsg"/>
@@ -6614,6 +6731,15 @@
         <soap:body use="literal"/>
       </output>
     </operation>
+    <operation name="CreateFlowLogs">
+      <soap:operation soapAction="CreateFlowLogs"/>
+      <input>
+        <soap:body use="literal"/> 
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+    </operation>
     <operation name="DeactivateLicense">
       <soap:operation soapAction="DeactivateLicense"/>
       <input>
@@ -6805,6 +6931,15 @@
     </operation>
     <operation name="DeleteVpnGateway">
       <soap:operation soapAction="DeleteVpnGateway"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+    </operation>
+	<operation name="DeleteFlowLogs">
+      <soap:operation soapAction="DeleteFlowLogs"/>
       <input>
         <soap:body use="literal"/>
       </input>
@@ -7192,6 +7327,15 @@
     </operation>
     <operation name="DescribeVpnGateways">
       <soap:operation soapAction="DescribeVpnGateways"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+    </operation>
+	<operation name="DescribeFlowLogs">
+      <soap:operation soapAction="DescribeFlowLogs"/>
       <input>
         <soap:body use="literal"/>
       </input>
@@ -7611,3 +7755,4 @@
     </port>
   </service>
 </definitions>
+

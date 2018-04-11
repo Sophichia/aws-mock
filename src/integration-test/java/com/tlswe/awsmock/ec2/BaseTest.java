@@ -29,6 +29,8 @@ import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupEgressResult;
 import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
 import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressResult;
 import com.amazonaws.services.ec2.model.AvailabilityZone;
+import com.amazonaws.services.ec2.model.CreateFlowLogsRequest;
+import com.amazonaws.services.ec2.model.CreateFlowLogsResult;
 import com.amazonaws.services.ec2.model.CreateInternetGatewayRequest;
 import com.amazonaws.services.ec2.model.CreateInternetGatewayResult;
 import com.amazonaws.services.ec2.model.CreateRouteRequest;
@@ -45,6 +47,8 @@ import com.amazonaws.services.ec2.model.CreateVolumeRequest;
 import com.amazonaws.services.ec2.model.CreateVolumeResult;
 import com.amazonaws.services.ec2.model.CreateVpcRequest;
 import com.amazonaws.services.ec2.model.CreateVpcResult;
+import com.amazonaws.services.ec2.model.DeleteFlowLogsRequest;
+import com.amazonaws.services.ec2.model.DeleteFlowLogsResult;
 import com.amazonaws.services.ec2.model.DeleteInternetGatewayRequest;
 import com.amazonaws.services.ec2.model.DeleteInternetGatewayResult;
 import com.amazonaws.services.ec2.model.DeleteRouteTableRequest;
@@ -60,6 +64,7 @@ import com.amazonaws.services.ec2.model.DeleteVolumeResult;
 import com.amazonaws.services.ec2.model.DeleteVpcRequest;
 import com.amazonaws.services.ec2.model.DeleteVpcResult;
 import com.amazonaws.services.ec2.model.DescribeAvailabilityZonesResult;
+import com.amazonaws.services.ec2.model.DescribeFlowLogsResult;
 import com.amazonaws.services.ec2.model.DescribeImagesRequest;
 import com.amazonaws.services.ec2.model.DescribeImagesResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
@@ -78,6 +83,7 @@ import com.amazonaws.services.ec2.model.DescribeVolumesResult;
 import com.amazonaws.services.ec2.model.DescribeVpcsRequest;
 import com.amazonaws.services.ec2.model.DescribeVpcsResult;
 import com.amazonaws.services.ec2.model.Filter;
+import com.amazonaws.services.ec2.model.FlowLog;
 import com.amazonaws.services.ec2.model.Image;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TagDescription;
@@ -851,7 +857,6 @@ public class BaseTest {
         CreateTagsRequest req = new CreateTagsRequest();
         req.setResources(resources);
         req.setTags(tags);
-        
         CreateTagsResult result = amazonEC2Client.createTags(req);
         if (result != null) {
             return true;
@@ -916,7 +921,6 @@ public class BaseTest {
         return false;
     }
 
-    
     /**
      * Describe Subnet.
      *
@@ -963,6 +967,7 @@ public class BaseTest {
         CreateSubnetRequest req = new CreateSubnetRequest();
         req.setCidrBlock(cidrBlock);
         req.setVpcId(vpcId);
+       
         CreateSubnetResult result = amazonEC2Client.createSubnet(req);
         if (result != null) {
             subnet = result.getSubnet();
@@ -1078,6 +1083,66 @@ public class BaseTest {
     }
 
     /**
+     * Create flow logs.
+     * @param deliverLogPermissionArn
+     *          The ARN of the IAM role that posts logs to CloudWatch Logs.
+     * @param logGroupName
+     *          The name of the flow log group.
+     * @param resources
+     *          The ID of the resource on which the flow log was created.
+     * @param resourceType
+     *          Resources type of the logs.
+     * @param trafficType
+     *          The type of traffic captured for the flow log.
+     * @return Boolean object. Whether creation successful.
+     */
+    protected final boolean createFlowLogs(final String deliverLogPermissionArn,
+            final String logGroupName, final Collection<String> resources,
+            final String resourceType, final String trafficType) {
+
+        CreateFlowLogsRequest req = new CreateFlowLogsRequest();
+        req.setDeliverLogsPermissionArn(deliverLogPermissionArn);
+        req.setLogGroupName(logGroupName);
+        req.setResourceIds(resources);
+        req.setResourceType(resourceType);
+        req.setTrafficType(trafficType);
+
+        CreateFlowLogsResult result = amazonEC2Client.createFlowLogs(req);
+        if (result != null) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Delete flow logs.
+     * @param flowLogIds
+     *          Flow log Ids to be deleted.
+     * @return Boolean object. Whether deletion successful.
+     */
+    protected final boolean deleteFlowLogs(final Collection<String> flowLogIds) {
+
+        DeleteFlowLogsRequest request = new DeleteFlowLogsRequest();
+        request.setFlowLogIds(flowLogIds);
+
+        DeleteFlowLogsResult result = amazonEC2Client.deleteFlowLogs(request);
+        if (result != null) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Describe flow logs.
+     * @return A list of FlowLog objects.
+     */
+    protected final List<FlowLog> getFlowLogs() {
+        DescribeFlowLogsResult result = amazonEC2Client.describeFlowLogs();
+        List<FlowLog> flowLogs = result.getFlowLogs();
+        return flowLogs;
+    }
+
+    /**
      * Wait an instance reaching target {@link InstanceState} by describing the instance every second until it reach
      * target state.
      *
@@ -1140,3 +1205,4 @@ public class BaseTest {
         return builder.toString();
     }
 }
+
